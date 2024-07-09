@@ -1,3 +1,7 @@
+const baseRadius = 0.4; // Base radius of the candle
+const candleHeight = 4; // Total height of the candle
+const candleCount=10; // Number of candles
+
 var hide = true;
 
 var scene = new THREE.Scene();
@@ -32,86 +36,92 @@ scene.add(light);
 scene.add(new THREE.AmbientLight(0xffffff, 0.0625));
 
 
-// candle
-var casePath = new THREE.Path();
-casePath.moveTo(0, 0);
-casePath.lineTo(0, 0);
-casePath.absarc(0.5, 0.25, 0.2, Math.PI * 1.5, Math.PI * 2);
-casePath.lineTo(0.75, 3); // Make it taller
-var caseGeo = new THREE.LatheBufferGeometry(casePath.getPoints(), 64);
-var caseMat = new THREE.MeshStandardMaterial({ color: 0xff4500 }); // Orange-red color
-var caseMesh = new THREE.Mesh(caseGeo, caseMat);
-caseMesh.castShadow = true;
-
-
-// 在創建 caseMesh 之後添加
-const topGeometry = new THREE.CylinderGeometry(0.2, 0.75, 0.1, 32);
-const topMaterial = new THREE.MeshStandardMaterial({color: 0xff4500});
-const topMesh = new THREE.Mesh(topGeometry, topMaterial);
-topMesh.position.y = 3; // 調整高度以適應蠟燭高度
-caseMesh.add(topMesh);
-
-// candlewick
-var candlewickProfile = new THREE.Shape();
-candlewickProfile.absarc(0, 0, 0.0625, 0, Math.PI * 2);
-
-var candlewickCurve = new THREE.CatmullRomCurve3([
-	new THREE.Vector3(0, 2, 0),
-	new THREE.Vector3(0, 2.5, -0.0625),
-	new THREE.Vector3(0.25, 2.5, 0.125)
-]);
-
-
-var candlewickGeo = new THREE.ExtrudeBufferGeometry(candlewickProfile, {
-	steps: 8,
-	bevelEnabled: false,
-	extrudePath: candlewickCurve
-});
-var colors = [];
-var color1 = new THREE.Color("black");
-var color2 = new THREE.Color(0x994411);
-var color3 = new THREE.Color(0xffff44);
-for (let i = 0; i < candlewickGeo.attributes.position.count; i++) {
-	if (candlewickGeo.attributes.position.getY(i) < 0.4) {
-		color1.toArray(colors, i * 3);
-	}
-	else {
-		color2.toArray(colors, i * 3);
-	};
-	if (candlewickGeo.attributes.position.getY(i) < 0.15) color3.toArray(colors, i * 3);
-}
-candlewickGeo.addAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-candlewickGeo.translate(0, 0.95, 0);
-var candlewickMat = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
-
-var candlewickMesh = new THREE.Mesh(candlewickGeo, candlewickMat);
-caseMesh.add(candlewickMesh);
-
-// candle light
-var candleLight = new THREE.PointLight(0xffaa33, 1, 5, 2);
-candleLight.position.set(0, 3, 0);
-candleLight.castShadow = true;
-caseMesh.add(candleLight);
-var candleLight2 = new THREE.PointLight(0xffaa33, 1, 10, 2);
-candleLight2.position.set(0, 4, 0);
-candleLight2.castShadow = true;
-caseMesh.add(candleLight2);
-
 // flame
 var flameMaterials = [];
-function flame(isFrontSide) {
+function flame() {
 	let flameGeo = new THREE.SphereBufferGeometry(0.5, 32, 32);
 	flameGeo.translate(0, 0.5, 0);
 	let flameMat = getFlameMaterial(true);
 	flameMaterials.push(flameMat);
 	let flame = new THREE.Mesh(flameGeo, flameMat);
-	flame.position.set(0.06, 3, 0.06);
+	flame.position.set(0.06, candleHeight, 0.06);
 	flame.rotation.y = THREE.Math.degToRad(-45);
-	caseMesh.add(flame);
+	return flame;
 }
 
-flame(false);
-flame(true);
+
+// create candle except flame
+function createCandle() {
+
+	var casePath = new THREE.Path();
+	casePath.moveTo(0, 0);
+	casePath.lineTo(0, 0);
+	casePath.absarc(0, 0, baseRadius, Math.PI * 1.5, Math.PI * 2);
+	casePath.lineTo(baseRadius, candleHeight); // Use baseRadius and candleHeight
+	var caseGeo = new THREE.LatheBufferGeometry(casePath.getPoints(), 64);
+	var caseMat = new THREE.MeshStandardMaterial({ color: 0xff4500 }); // Orange-red color
+	var caseMesh = new THREE.Mesh(caseGeo, caseMat);
+	caseMesh.castShadow = true;
+
+	// top part of the candle
+	const topGeometry = new THREE.CylinderGeometry(0.2, baseRadius, 0.1, 32); // Use baseRadius for the top base
+	const topMaterial = new THREE.MeshStandardMaterial({ color: 0xff4500 });
+	const topMesh = new THREE.Mesh(topGeometry, topMaterial);
+	topMesh.position.y = candleHeight; // Use candleHeight for positioning
+	caseMesh.add(topMesh);
+
+	// candlewick
+	var candlewickProfile = new THREE.Shape();
+	candlewickProfile.absarc(0, 0, 0.0625, 0, Math.PI * 2);
+
+	var candlewickCurve = new THREE.CatmullRomCurve3([
+		new THREE.Vector3(0, candleHeight-1, 0),
+		new THREE.Vector3(0, candleHeight-0.5, -0.0625),
+		new THREE.Vector3(0.25, candleHeight-0.5, 0.125)
+	]);
+
+	var candlewickGeo = new THREE.ExtrudeBufferGeometry(candlewickProfile, {
+		steps: 8,
+		bevelEnabled: false,
+		extrudePath: candlewickCurve
+	});
+	var colors = [];
+	var color1 = new THREE.Color("black");
+	var color2 = new THREE.Color(0x994411);
+	var color3 = new THREE.Color(0xffff44);
+	for (let i = 0; i < candlewickGeo.attributes.position.count; i++) {
+		if (candlewickGeo.attributes.position.getY(i) < 0.4) {
+			color1.toArray(colors, i * 3);
+		}
+		else {
+			color2.toArray(colors, i * 3);
+		};
+		if (candlewickGeo.attributes.position.getY(i) < 0.15) color3.toArray(colors, i * 3);
+	}
+	candlewickGeo.addAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+	candlewickGeo.translate(0, 0.95, 0);
+	var candlewickMat = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
+
+	var candlewickMesh = new THREE.Mesh(candlewickGeo, candlewickMat);
+	caseMesh.add(candlewickMesh);
+
+	return caseMesh;
+}
+
+const candleMesh = createCandle();
+
+// candle light
+var candleLight = new THREE.PointLight(0xffaa33, 1, 5, 2);
+candleLight.position.set(0, candleHeight, 0);
+candleLight.castShadow = true;
+candleMesh.add(candleLight);
+var candleLight2 = new THREE.PointLight(0xffaa33, 1, 10, 2);
+candleLight2.position.set(0, candleHeight+1, 0);
+candleLight2.castShadow = true;
+candleMesh.add(candleLight2);
+
+candleMesh.add(flame());
+candleMesh.add(flame())
 
 // table
 var tableGeo = new THREE.CylinderBufferGeometry(14, 14, 0.5, 64);
@@ -120,7 +130,7 @@ var tableMat = new THREE.MeshStandardMaterial({ map: new THREE.TextureLoader().l
 var tableMesh = new THREE.Mesh(tableGeo, tableMat);
 tableMesh.receiveShadow = true;
 
-tableMesh.add(caseMesh);
+tableMesh.add(candleMesh);
 scene.add(tableMesh);
 
 var clock = new THREE.Clock();
@@ -168,8 +178,8 @@ const cake = createCake();
 scene.add(cake);
 
 // 修改 caseMesh 的縮放和位置
-caseMesh.scale.set(0.3, 0.3, 0.3);
-caseMesh.position.y = 1.25; // 調整高度以放置在蛋糕頂部
+candleMesh.scale.set(0.3, 0.3, 0.3);
+candleMesh.position.y = 1.25; // 調整高度以放置在蛋糕頂部
 
 // 創建多個蠟燭並放置在蛋糕上
 function createCandles(count) {
@@ -177,7 +187,7 @@ function createCandles(count) {
 	const radius = 1;
 	for (let i = 0; i < count; i++) {
 		const angle = (i / count) * Math.PI * 2;
-		const candle = caseMesh.clone();
+		const candle = candleMesh.clone();
 		candle.position.x = Math.cos(angle) * radius;
 		candle.position.z = Math.sin(angle) * radius;
 		candleGroup.add(candle);
@@ -185,7 +195,7 @@ function createCandles(count) {
 	return candleGroup;
 }
 
-const candles = createCandles(5); // 創建 5 根蠟燭
+const candles = createCandles(candleCount);
 cake.add(candles);
 
 // 調整相機位置
