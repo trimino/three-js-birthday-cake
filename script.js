@@ -39,7 +39,7 @@ controls.update();
 var light = new THREE.DirectionalLight(0xffffff, 0.025);
 light.position.setScalar(10);
 scene.add(light);
-scene.add(new THREE.AmbientLight(0xffffff, 0.0625));
+scene.add(new THREE.AmbientLight(0xffffff, 0.05));
 
 
 // flame
@@ -142,7 +142,6 @@ function flame() {
 
 // create candle except flame
 function createCandle() {
-
 	var casePath = new THREE.Path();
 	casePath.moveTo(0, 0);
 	casePath.lineTo(0, 0);
@@ -222,7 +221,6 @@ var tableMat = new THREE.MeshStandardMaterial({ map: tableTexture, metalness: 0,
 var tableMesh = new THREE.Mesh(tableGeo, tableMat);
 tableMesh.receiveShadow = true;
 
-//tableMesh.add(candleMesh);
 scene.add(tableMesh);
 
 var clock = new THREE.Clock();
@@ -325,7 +323,7 @@ document.addEventListener('touchend', handleHoldEnd);
 
 function blowOutCandles() {
 	candles.children.forEach(candle => {
-		const speed = 1 + Math.random() * 2; // 生成 0.5 到 3 之間的隨機速度
+		const speed = 1 + Math.random() * 3;
 		extinguishCandle(candle, speed);
 	});
 
@@ -333,9 +331,9 @@ function blowOutCandles() {
 	let ambientLightIntensity = ambientLight.intensity;
 	const ambientInterval = setInterval(() => {
 		ambientLightIntensity += 0.01;
-		if (ambientLightIntensity >= 0.2) {
+		if (ambientLightIntensity >= 0.1) {
 			clearInterval(ambientInterval);
-			ambientLight.intensity = 0.2;
+			ambientLight.intensity = 0.1;
 		} else {
 			ambientLight.intensity = ambientLightIntensity;
 		}
