@@ -3,6 +3,10 @@ body{
   margin: 0;
 }
 
+div, p{
+    user-select: none;
+}
+
 
 #volume-reminder {
     position: fixed;

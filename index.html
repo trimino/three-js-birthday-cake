@@ -11,30 +11,35 @@
 <body>
 	<div id="volume-reminder">
 		<div id="volume-icon">🔊</div>
-		<p>請調高音量</p>
+		<p>請調高音量然後點我</p>
 	</div>
-	<audio id="happy-birthday-audio" autoplay>
+	<audio id="happy-birthday-audio">
 		<source src="/happy-birthday.mp3" type="audio/mpeg">
 	</audio>
 	<div id="hold-reminder">
 		<p>長按螢幕來吹蠟燭</p>
 	</div>
 	<script>
+		const audio = document.getElementById('happy-birthday-audio');
+		const volumeReminder = document.getElementById('volume-reminder');
+		const holdReminder = document.getElementById('hold-reminder');
 		// 控制音量提醒的顯示和隱藏
 		window.addEventListener('load', function () {
 			const reminder = document.getElementById('volume-reminder');
 			reminder.classList.add('show');
+			audio.play();
 
 			setTimeout(function () {
 				reminder.classList.remove('show');
 				setTimeout(function () {
 					reminder.style.display = 'none';
 				}, 1000);
-			}, 3000);
+			}, 5000);
 		});
 
-		const audio = document.getElementById('happy-birthday-audio');
-		const holdReminder = document.getElementById('hold-reminder');
+		volumeReminder.addEventListener('click', function () {
+			audio.play();
+		});
 
 		audio.addEventListener('ended', function () {
 			holdReminder.style.display = 'flex';
