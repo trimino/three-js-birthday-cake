@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import tableMatImage from './table.png';
+import tableMatImage from "./table.png";
 
 // SECTION constants
 const candleRadius = 0.35; // Base radius of the candle
@@ -217,7 +217,7 @@ candleMesh.add(flame())
 var tableGeo = new THREE.CylinderGeometry(14, 14, 0.5, 64);
 tableGeo.translate(0, -tableHeightOffset, 0);
 const textureLoader = new THREE.TextureLoader();
-const tableTexture = textureLoader.load(tableMatImage);
+const tableTexture = textureLoader.load(tableMatImage); // in the public folder
 var tableMat = new THREE.MeshStandardMaterial({ map: tableTexture, metalness: 0, roughness: 0.75 });
 var tableMesh = new THREE.Mesh(tableGeo, tableMat);
 tableMesh.receiveShadow = true;
