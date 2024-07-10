@@ -5,6 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Surprise</title>
+	<link rel="icon" href="/public/favicon.ico" type="image/x-icon">
 	<link href="style.css" rel="stylesheet">
 </head>
 
@@ -22,30 +23,18 @@
 	<script>
 		const audio = document.getElementById('happy-birthday-audio');
 		const volumeReminder = document.getElementById('volume-reminder');
-		const holdReminder = document.getElementById('hold-reminder');
+
+		volumeReminder.addEventListener("click", function () {
+			audio.play();
+			volumeReminder.classList.remove('show');
+			setTimeout(function () {
+				volumeReminder.style.display = 'none';
+			}, 1000);
+		})
+
 		// 控制音量提醒的顯示和隱藏
 		window.addEventListener('load', function () {
-			const reminder = document.getElementById('volume-reminder');
-			reminder.classList.add('show');
-			audio.play();
-
-			setTimeout(function () {
-				reminder.classList.remove('show');
-				setTimeout(function () {
-					reminder.style.display = 'none';
-				}, 1000);
-			}, 5000);
-		});
-
-		volumeReminder.addEventListener('click', function () {
-			audio.play();
-		});
-
-		audio.addEventListener('ended', function () {
-			holdReminder.style.display = 'flex';
-			setTimeout(function () {
-				holdReminder.classList.add('show');
-			}, 10); // 確保 display 設置生效後再添加類名
+			volumeReminder.classList.add('show');
 		});
 	</script>
 	<script type="module" src="script.js"></script>

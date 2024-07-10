@@ -305,9 +305,25 @@ scene.add(ambientLight);
 
 // 添加按住事件監聽
 let holdTimeout;
+let allowBlowout=false;
 
-// TODO: enable the hold event after the song is played
+
+const holdReminder=document.getElementById('hold-reminder');
+const audio=document.getElementById("happy-birthday-audio");
+
+audio.addEventListener('ended', function() {
+	holdReminder.style.display = 'flex';
+	setTimeout(function() {
+		holdReminder.classList.add('show');
+	}, 10); // 確保 display 設置生效後再添加類名
+	allowBlowout=true;
+});
+
+// enable the hold event after the song is played
 function handleHoldStart() {
+	if(!allowBlowout){
+		return;
+	}
 	holdTimeout = setTimeout(() => {
 		blowOutCandles();
 	}, 500);
