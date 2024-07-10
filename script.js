@@ -338,6 +338,13 @@ document.addEventListener('touchstart', handleHoldStart);
 document.addEventListener('mouseup', handleHoldEnd);
 document.addEventListener('touchend', handleHoldEnd);
 
+function showCongratulation() {
+  const overlay = document.getElementById('congratulation-overlay');
+  overlay.style.pointerEvents = 'auto';
+  overlay.style.background = 'rgba(0, 0, 0, 0.8)';
+  overlay.style.opacity = '1';
+}
+
 function blowOutCandles() {
 	candles.children.forEach(candle => {
 		const speed = 1 + Math.random() * 3;
@@ -351,6 +358,7 @@ function blowOutCandles() {
 		if (ambientLightIntensity >= 0.1) {
 			clearInterval(ambientInterval);
 			ambientLight.intensity = 0.1;
+			showCongratulation();
 		} else {
 			ambientLight.intensity = ambientLightIntensity;
 		}

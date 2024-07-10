@@ -5,6 +5,7 @@ body{
 
 div, p{
     user-select: none;
+    font-family: "Noto Sans TC", sans-serif;
 }
 
 
@@ -43,7 +44,7 @@ div, p{
     margin-left:auto;
     width: 80%;
     height: 10%;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -56,4 +57,26 @@ div, p{
 
 #hold-reminder.show {
     opacity: 1;
+}
+
+
+#congratulation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 1s;
+  pointer-events: none;
+}
+
+#congratulation-text {
+  color: white;
+  font-size: 4em;
+  text-align: center;
 }
