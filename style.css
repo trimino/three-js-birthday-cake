@@ -29,3 +29,27 @@ body{
     font-size: 48px;
     margin-bottom: 20px;
 }
+
+#hold-reminder {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin-right:auto;
+    margin-left:auto;
+    width: 80%;
+    height: 10%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    z-index: 1000;
+}
+
+#hold-reminder.show {
+    opacity: 1;
+}

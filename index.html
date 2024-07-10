@@ -16,8 +16,9 @@
 	<audio id="happy-birthday-audio" autoplay>
 		<source src="happy-birthday.mp3" type="audio/mpeg">
 	</audio>
-	<script src="https://cdn.jsdelivr.net/npm/three@0.98.0/build/three.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/three@0.98.0/examples/js/controls/OrbitControls.js"></script>
+	<div id="hold-reminder">
+		<p>長按螢幕來吹蠟燭</p>
+	</div>
 	<script>
 		// 控制音量提醒的顯示和隱藏
 		window.addEventListener('load', function () {
@@ -29,10 +30,20 @@
 				setTimeout(function () {
 					reminder.style.display = 'none';
 				}, 1000);
-			}, 5000);
+			}, 3000);
+		});
+
+		const audio = document.getElementById('happy-birthday-audio');
+		const holdReminder = document.getElementById('hold-reminder');
+
+		audio.addEventListener('ended', function () {
+			holdReminder.style.display = 'flex';
+			setTimeout(function () {
+				holdReminder.classList.add('show');
+			}, 10); // 確保 display 設置生效後再添加類名
 		});
 	</script>
-	<script src="script.js"></script>
+	<script type="module" src="script.js"></script>
 </body>
 
 </html>

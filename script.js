@@ -1,7 +1,10 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
 // SECTION constants
 const candleRadius = 0.35; // Base radius of the candle
 const candleHeight = 3.5; // Total height of the candle
-const candleCount = 5; // Number of candles
+const candleCount = 8; // Number of candles
 
 const baseRadius = 2.5; // Base radius of the cake
 const baseHeight = 2; // Height of the cake base
@@ -12,27 +15,20 @@ const topHeight = 1; // Height of the cake top
 
 const tableHeightOffset = 1;
 
-var hide = true;
-
-var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
 camera.position.set(3, 5, 8).setLength(15);
-var renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x101005);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
-window.addEventListener("resize", _event => {
-	camera.aspect = innerWidth / innerHeight;
-	camera.updateProjectionMatrix()
-	renderer.setSize(innerWidth, innerHeight);
-})
 
-var controls = new THREE.OrbitControls(camera, renderer.domElement);
+var controls = new OrbitControls(camera, renderer.domElement);
 controls.enablePan = false;
-controls.minPolarAngle = THREE.Math.degToRad(60);
-controls.maxPolarAngle = THREE.Math.degToRad(95);
+controls.minPolarAngle = THREE.MathUtils.degToRad(60);
+controls.maxPolarAngle = THREE.MathUtils.degToRad(95);
 controls.minDistance = 4;
 controls.maxDistance = 20;
 controls.autoRotate = true;
@@ -133,13 +129,13 @@ gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.66, 0.32, 0.03), smoothstep(0.95
 }
 var flameMaterials = [];
 function flame() {
-	let flameGeo = new THREE.SphereBufferGeometry(0.5, 32, 32);
+	let flameGeo = new THREE.SphereGeometry(0.5, 32, 32);
 	flameGeo.translate(0, 0.5, 0);
 	let flameMat = getFlameMaterial(true);
 	flameMaterials.push(flameMat);
 	let flame = new THREE.Mesh(flameGeo, flameMat);
 	flame.position.set(0.06, candleHeight, 0.06);
-	flame.rotation.y = THREE.Math.degToRad(-45);
+	flame.rotation.y = THREE.MathUtils.degToRad(-45);
 	return flame;
 }
 
@@ -152,7 +148,7 @@ function createCandle() {
 	casePath.lineTo(0, 0);
 	casePath.absarc(0, 0, candleRadius, Math.PI * 1.5, Math.PI * 2);
 	casePath.lineTo(candleRadius, candleHeight); // Use baseRadius and candleHeight
-	var caseGeo = new THREE.LatheBufferGeometry(casePath.getPoints(), 64);
+	var caseGeo = new THREE.LatheGeometry(casePath.getPoints(), 64);
 	var caseMat = new THREE.MeshStandardMaterial({ color: 0xff4500 }); // Orange-red color
 	var caseMesh = new THREE.Mesh(caseGeo, caseMat);
 	caseMesh.castShadow = true;
@@ -174,7 +170,7 @@ function createCandle() {
 		new THREE.Vector3(0.25, candleHeight - 0.5, 0.125)
 	]);
 
-	var candlewickGeo = new THREE.ExtrudeBufferGeometry(candlewickProfile, {
+	var candlewickGeo = new THREE.ExtrudeGeometry(candlewickProfile, {
 		steps: 8,
 		bevelEnabled: false,
 		extrudePath: candlewickCurve
@@ -192,9 +188,9 @@ function createCandle() {
 		};
 		if (candlewickGeo.attributes.position.getY(i) < 0.15) color3.toArray(colors, i * 3);
 	}
-	candlewickGeo.addAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+	candlewickGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
 	candlewickGeo.translate(0, 0.95, 0);
-	var candlewickMat = new THREE.MeshBasicMaterial({ vertexColors: THREE.VertexColors });
+	var candlewickMat = new THREE.MeshBasicMaterial({ vertexColors: true });
 
 	var candlewickMesh = new THREE.Mesh(candlewickGeo, candlewickMat);
 	caseMesh.add(candlewickMesh);
@@ -218,13 +214,15 @@ candleMesh.add(flame());
 candleMesh.add(flame())
 
 // table
-var tableGeo = new THREE.CylinderBufferGeometry(14, 14, 0.5, 64);
+var tableGeo = new THREE.CylinderGeometry(14, 14, 0.5, 64);
 tableGeo.translate(0, -tableHeightOffset, 0);
-var tableMat = new THREE.MeshStandardMaterial({ map: new THREE.TextureLoader().load("./table.png"), metalness: 0, roughness: 0.75 });
+const textureLoader = new THREE.TextureLoader();
+const tableTexture = textureLoader.load('./table.png');
+var tableMat = new THREE.MeshStandardMaterial({ map: tableTexture, metalness: 0, roughness: 0.75 });
 var tableMesh = new THREE.Mesh(tableGeo, tableMat);
 tableMesh.receiveShadow = true;
 
-tableMesh.add(candleMesh);
+//tableMesh.add(candleMesh);
 scene.add(tableMesh);
 
 var clock = new THREE.Clock();
@@ -247,21 +245,20 @@ function render() {
 function createCake() {
 	const cakeGroup = new THREE.Group();
 
-	// TODO: change the color of the cake
 	// 蛋糕底層
 	const baseGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius, baseHeight, 32);
-	const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xffdab9 });
+	const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xfff5ee }); // 更白的顏色
 	const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
 
 	// 蛋糕中層
 	const middleGeometry = new THREE.CylinderGeometry(middleRadius, middleRadius, middleHeight, 32);
-	const middleMaterial = new THREE.MeshPhongMaterial({ color: 0xffdab9 });
+	const middleMaterial = new THREE.MeshPhongMaterial({ color: 0xfffafa }); // 雪白色
 	const middleMesh = new THREE.Mesh(middleGeometry, middleMaterial);
 	middleMesh.position.y = baseHeight / 2 + middleHeight / 2;
 
 	// 蛋糕頂層
 	const topGeometry = new THREE.CylinderGeometry(topRadius, topRadius, topHeight, 32);
-	const topMaterial = new THREE.MeshPhongMaterial({ color: 0xffe4b5 });
+	const topMaterial = new THREE.MeshPhongMaterial({ color: 0xf0ffff }); // 天藍白
 	const topMesh = new THREE.Mesh(topGeometry, topMaterial);
 	topMesh.position.y = baseHeight / 2 + middleHeight + topHeight / 2;
 
@@ -270,7 +267,6 @@ function createCake() {
 	cakeGroup.add(middleMesh);
 	cakeGroup.add(topMesh);
 
-	// 返回蛋糕組
 	return cakeGroup;
 }
 
@@ -308,7 +304,71 @@ camera.lookAt(cake.position);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
 scene.add(ambientLight);
 
-// const directionalLight = new THREE.DirectionalLight(0xffffff, 0.25);
-// directionalLight.position.set(5, 5, 5);
-// scene.add(directionalLight);
+// 添加按住事件監聽
+let holdTimeout;
+
+// TODO: enable the hold event after the song is played
+function handleHoldStart() {
+	holdTimeout = setTimeout(() => {
+		blowOutCandles();
+	}, 500);
+}
+
+function handleHoldEnd() {
+	clearTimeout(holdTimeout);
+}
+
+document.addEventListener('mousedown', handleHoldStart);
+document.addEventListener('touchstart', handleHoldStart);
+document.addEventListener('mouseup', handleHoldEnd);
+document.addEventListener('touchend', handleHoldEnd);
+
+function blowOutCandles() {
+	candles.children.forEach(candle => {
+		const speed = 1 + Math.random() * 2; // 生成 0.5 到 3 之間的隨機速度
+		extinguishCandle(candle, speed);
+	});
+
+	// 逐漸增加環境光
+	let ambientLightIntensity = ambientLight.intensity;
+	const ambientInterval = setInterval(() => {
+		ambientLightIntensity += 0.01;
+		if (ambientLightIntensity >= 0.2) {
+			clearInterval(ambientInterval);
+			ambientLight.intensity = 0.2;
+		} else {
+			ambientLight.intensity = ambientLightIntensity;
+		}
+	}, 50);
+
+	// 隱藏提示文字
+	document.getElementById('hold-reminder').style.display = 'none';
+}
+
+function extinguishCandle(candle, speed) {
+	const flames = candle.children.filter(child => child.material && child.material.type === 'ShaderMaterial');
+	const lights = candle.children.filter(child => child instanceof THREE.PointLight);
+
+	let progress = 0;
+	const extinguishInterval = setInterval(() => {
+		progress += 0.02 * speed;
+		if (progress >= 1) {
+			clearInterval(extinguishInterval);
+			flames.forEach(flame => flame.visible = false);
+			lights.forEach(light => light.intensity = 0);
+		} else {
+			// 降低火焰的不透明度和大小
+			flames.forEach(flame => {
+				flame.material.opacity = 1 - progress;
+				flame.scale.set(1 - progress, 1 - progress, 1 - progress);
+			});
+
+			// 降低光源強度
+			lights.forEach(light => {
+				light.intensity = 1 - progress;
+			});
+		}
+	}, 30);
+
+}
 
