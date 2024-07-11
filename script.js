@@ -217,6 +217,7 @@ candleMesh.add(flame())
 var tableGeo = new THREE.CylinderGeometry(14, 14, 0.5, 64);
 tableGeo.translate(0, -tableHeightOffset, 0);
 const textureLoader = new THREE.TextureLoader();
+textureLoader.setCrossOrigin('anonymous');
 const tableTexture = textureLoader.load(tableMatImage); // in the public folder
 var tableMat = new THREE.MeshStandardMaterial({ map: tableTexture, metalness: 0, roughness: 0.75 });
 var tableMesh = new THREE.Mesh(tableGeo, tableMat);
