@@ -5,7 +5,7 @@ import tableMatImage from "./table.png";
 // SECTION constants
 const candleRadius = 0.35; // Base radius of the candle
 const candleHeight = 3.5; // Total height of the candle
-const candleCount = 8; // Number of candles
+const candleCount = 5; // Number of candles
 
 const baseRadius = 2.5; // Base radius of the cake
 const baseHeight = 2; // Height of the cake base
@@ -217,8 +217,8 @@ candleMesh.add(flame())
 var tableGeo = new THREE.CylinderGeometry(14, 14, 0.5, 64);
 tableGeo.translate(0, -tableHeightOffset, 0);
 const textureLoader = new THREE.TextureLoader();
-textureLoader.setCrossOrigin('anonymous');
 const tableTexture = textureLoader.load(tableMatImage); // in the public folder
+console.log(tableTexture);
 var tableMat = new THREE.MeshStandardMaterial({ map: tableTexture, metalness: 0, roughness: 0.75 });
 var tableMesh = new THREE.Mesh(tableGeo, tableMat);
 tableMesh.receiveShadow = true;
