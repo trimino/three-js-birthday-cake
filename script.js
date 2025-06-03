@@ -1,24 +1,36 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import tableMatImage from "./table.png";
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 // SECTION constants
-const candleRadius = 0.35; // Base radius of the candle
-const candleHeight = 3.5; // Total height of the candle
-const candleCount = 5; // Number of candles
+const candleRadius = 0.35;       // Base radius of the candle
+const candleHeight = 3.5;        // Total height of the candle
+const candleCount = 5;           // Number of candles
 
-const baseRadius = 2.5; // Base radius of the cake
-const baseHeight = 2; // Height of the cake base
-const middleRadius = 2; // Middle radius of the cake
-const middleHeight = 1.25; // Height of the cake middle
-const topRadius = 1.5 // Top radius of the cake
-const topHeight = 1; // Height of the cake top
+const baseRadius = 2.5;          // Base radius of the cake
+const baseHeight = 2;            // Height of the cake base
+const middleRadius = 2;          // Middle radius of the cake
+const middleHeight = 1.25;       // Height of the cake middle
+const topRadius = 1.5;           // Top radius of the cake
+const topHeight = 1;             // Height of the cake top
 
 const tableHeightOffset = 1;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 1) SET UP SCENE, CAMERA, RENDERER, CONTROLS, LIGHTS
+// ─────────────────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+
+const camera = new THREE.PerspectiveCamera(
+	60,
+	window.innerWidth / window.innerHeight,
+	1,
+	1000
+);
 camera.position.set(3, 5, 8).setLength(15);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x101005);
@@ -26,7 +38,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
-var controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enablePan = false;
 controls.minPolarAngle = THREE.MathUtils.degToRad(60);
 controls.maxPolarAngle = THREE.MathUtils.degToRad(95);
@@ -37,14 +49,14 @@ controls.autoRotateSpeed = 1;
 controls.target.set(0, 2, 0);
 controls.update();
 
-var light = new THREE.DirectionalLight(0xffffff, 0.025);
-light.position.setScalar(10);
-scene.add(light);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.025);
+dirLight.position.setScalar(10);
+scene.add(dirLight);
 scene.add(new THREE.AmbientLight(0xffffff, 0.05));
 
-
-// flame
-
+// ─────────────────────────────────────────────────────────────────────────────
+// 2) FLAME SHADER MATERIAL & HELPER FUNCTIONS
+// ─────────────────────────────────────────────────────────────────────────────
 function getFlameMaterial(isFrontSide) {
 	let side = isFrontSide ? THREE.FrontSide : THREE.BackSide;
 	return new THREE.ShaderMaterial({
@@ -52,279 +64,319 @@ function getFlameMaterial(isFrontSide) {
 			time: { value: 0 }
 		},
 		vertexShader: `
-uniform float time;
-varying vec2 vUv;
-varying float hValue;
+      uniform float time;
+      varying vec2 vUv;
+      varying float hValue;
 
-//https://thebookofshaders.com/11/
-// 2D Random
-float random (in vec2 st) {
-return fract(sin(dot(st.xy,
-vec2(12.9898,78.233)))
-* 43758.5453123);
-}
+      // 2D Random
+      float random(in vec2 st) {
+        return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+      }
 
-// 2D Noise based on Morgan McGuire @morgan3d
-// https://www.shadertoy.com/view/4dS3Wd
-float noise (in vec2 st) {
-vec2 i = floor(st);
-vec2 f = fract(st);
+      // 2D Noise based on Morgan McGuire
+      float noise(in vec2 st) {
+        vec2 i = floor(st);
+        vec2 f = fract(st);
+        float a = random(i);
+        float b = random(i + vec2(1.0, 0.0));
+        float c = random(i + vec2(0.0, 1.0));
+        float d = random(i + vec2(1.0, 1.0));
+        vec2 u = f*f*(3.0-2.0*f);
+        return mix(a, b, u.x) +
+               (c - a)* u.y * (1.0 - u.x) +
+               (d - b) * u.x * u.y;
+      }
 
-// Four corners in 2D of a tile
-float a = random(i);
-float b = random(i + vec2(1.0, 0.0));
-float c = random(i + vec2(0.0, 1.0));
-float d = random(i + vec2(1.0, 1.0));
+      void main() {
+        vUv = uv;
+        vec3 pos = position;
+        pos *= vec3(0.8, 2, 0.725);
+        hValue = position.y;
+        float posXZlen = length(position.xz);
 
-// Smooth Interpolation
+        pos.y *= 1. + (
+          cos((posXZlen + 0.25) * 3.1415926) * 0.25 +
+          noise(vec2(0, time)) * 0.125 +
+          noise(vec2(position.x + time, position.z + time)) * 0.5
+        ) * position.y;
 
-// Cubic Hermine Curve.  Same as SmoothStep()
-vec2 u = f*f*(3.0-2.0*f);
-// u = smoothstep(0.,1.,f);
+        pos.x += noise(vec2(time * 2., (position.y - time) * 4.0)) * hValue * 0.0312;
+        pos.z += noise(vec2((position.y - time) * 4.0, time * 2.)) * hValue * 0.0312;
 
-// Mix 4 coorners percentages
-return mix(a, b, u.x) +
-(c - a)* u.y * (1.0 - u.x) +
-(d - b) * u.x * u.y;
-}
-
-void main() {
-vUv = uv;
-vec3 pos = position;
-
-pos *= vec3(0.8, 2, 0.725);
-hValue = position.y;
-//float sinT = sin(time * 2.) * 0.5 + 0.5;
-float posXZlen = length(position.xz);
-
-pos.y *= 1. + (cos((posXZlen + 0.25) * 3.1415926) * 0.25 + noise(vec2(0, time)) * 0.125 + noise(vec2(position.x + time, position.z + time)) * 0.5) * position.y; // flame height
-
-pos.x += noise(vec2(time * 2., (position.y - time) * 4.0)) * hValue * 0.0312; // flame trembling
-pos.z += noise(vec2((position.y - time) * 4.0, time * 2.)) * hValue * 0.0312; // flame trembling
-
-gl_Position = projectionMatrix * modelViewMatrix * vec4(pos,1.0);
-}
-`,
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `,
 		fragmentShader: `
-varying float hValue;
-varying vec2 vUv;
+      varying float hValue;
+      varying vec2 vUv;
 
-// honestly stolen from https://www.shadertoy.com/view/4dsSzr
-vec3 heatmapGradient(float t) {
-return clamp((pow(t, 1.5) * 0.8 + 0.2) * vec3(smoothstep(0.0, 0.35, t) + t * 0.5, smoothstep(0.5, 1.0, t), max(1.0 - t * 1.7, t * 7.0 - 6.0)), 0.0, 1.0);
-}
+      vec3 heatmapGradient(float t) {
+        return clamp(
+          (pow(t, 1.5) * 0.8 + 0.2) *
+          vec3(
+            smoothstep(0.0, 0.35, t) + t * 0.5,
+            smoothstep(0.5, 1.0, t),
+            max(1.0 - t * 1.7, t * 7.0 - 6.0)
+          ), 0.0, 1.0
+        );
+      }
 
-void main() {
-float v = abs(smoothstep(0.0, 0.4, hValue) - 1.);
-float alpha = (1. - v) * 0.99; // bottom transparency
-alpha -= 1. - smoothstep(1.0, 0.97, hValue); // tip transparency
-gl_FragColor = vec4(heatmapGradient(smoothstep(0.0, 0.3, hValue)) * vec3(0.95,0.95,0.4), alpha) ;
-gl_FragColor.rgb = mix(vec3(0,0,1), gl_FragColor.rgb, smoothstep(0.0, 0.3, hValue)); // blueish for bottom
-gl_FragColor.rgb += vec3(1, 0.9, 0.5) * (1.25 - vUv.y); // make the midst brighter
-gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.66, 0.32, 0.03), smoothstep(0.95, 1., hValue)); // tip
-}
-`,
+      void main() {
+        float v = abs(smoothstep(0.0, 0.4, hValue) - 1.);
+        float alpha = (1. - v) * 0.99;
+        alpha -= 1. - smoothstep(1.0, 0.97, hValue);
+        vec3 color = heatmapGradient(smoothstep(0.0, 0.3, hValue)) * vec3(0.95, 0.95, 0.4);
+        color = mix(vec3(0, 0, 1), color, smoothstep(0.0, 0.3, hValue));
+        color += vec3(1, 0.9, 0.5) * (1.25 - vUv.y);
+        color = mix(color, vec3(0.66, 0.32, 0.03), smoothstep(0.95, 1.0, hValue));
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
 		transparent: true,
 		side: side
 	});
 }
-var flameMaterials = [];
+
+let flameMaterials = [];
 function flame() {
-	let flameGeo = new THREE.SphereGeometry(0.5, 32, 32);
+	const flameGeo = new THREE.SphereGeometry(0.5, 32, 32);
 	flameGeo.translate(0, 0.5, 0);
-	let flameMat = getFlameMaterial(true);
+	const flameMat = getFlameMaterial(true);
 	flameMaterials.push(flameMat);
-	let flame = new THREE.Mesh(flameGeo, flameMat);
-	flame.position.set(0.06, candleHeight, 0.06);
-	flame.rotation.y = THREE.MathUtils.degToRad(-45);
-	return flame;
+	const flameMesh = new THREE.Mesh(flameGeo, flameMat);
+	flameMesh.position.set(0.06, candleHeight, 0.06);
+	flameMesh.rotation.y = THREE.MathUtils.degToRad(-45);
+	return flameMesh;
 }
 
-
-// create candle except flame
+// ─────────────────────────────────────────────────────────────────────────────
+// 3) CREATE CANDLE MESH (WITHOUT FLAME) AND ADD LIGHT + FLAME
+// ─────────────────────────────────────────────────────────────────────────────
 function createCandle() {
-	var casePath = new THREE.Path();
+	// Candle body using LatheGeometry
+	const casePath = new THREE.Path();
 	casePath.moveTo(0, 0);
 	casePath.lineTo(0, 0);
 	casePath.absarc(0, 0, candleRadius, Math.PI * 1.5, Math.PI * 2);
-	casePath.lineTo(candleRadius, candleHeight); // Use baseRadius and candleHeight
-	var caseGeo = new THREE.LatheGeometry(casePath.getPoints(), 64);
-	var caseMat = new THREE.MeshStandardMaterial({ color: 0xff4500 }); // Orange-red color
-	var caseMesh = new THREE.Mesh(caseGeo, caseMat);
+	casePath.lineTo(candleRadius, candleHeight);
+	const caseGeo = new THREE.LatheGeometry(casePath.getPoints(), 64);
+	const caseMat = new THREE.MeshStandardMaterial({ color: 0xff4500 });
+	const caseMesh = new THREE.Mesh(caseGeo, caseMat);
 	caseMesh.castShadow = true;
 
-	// top part of the candle
-	const topGeometry = new THREE.CylinderGeometry(0.2, candleRadius, 0.1, 32); // Use baseRadius for the top base
-	const topMaterial = new THREE.MeshStandardMaterial({ color: 0xff4500 });
-	const topMesh = new THREE.Mesh(topGeometry, topMaterial);
-	topMesh.position.y = candleHeight; // Use candleHeight for positioning
+	// Candle top cap
+	const topGeo = new THREE.CylinderGeometry(0.2, candleRadius, 0.1, 32);
+	const topMat = new THREE.MeshStandardMaterial({ color: 0xff4500 });
+	const topMesh = new THREE.Mesh(topGeo, topMat);
+	topMesh.position.y = candleHeight;
 	caseMesh.add(topMesh);
 
-	// candlewick
-	var candlewickProfile = new THREE.Shape();
-	candlewickProfile.absarc(0, 0, 0.0625, 0, Math.PI * 2);
-
-	var candlewickCurve = new THREE.CatmullRomCurve3([
+	// Candlewick using ExtrudeGeometry
+	const wickProfile = new THREE.Shape();
+	wickProfile.absarc(0, 0, 0.0625, 0, Math.PI * 2);
+	const wickCurve = new THREE.CatmullRomCurve3([
 		new THREE.Vector3(0, candleHeight - 1, 0),
 		new THREE.Vector3(0, candleHeight - 0.5, -0.0625),
-		new THREE.Vector3(0.25, candleHeight - 0.5, 0.125)
+		new THREE.Vector3(0.25, candleHeight - 0.5, 0.125),
 	]);
-
-	var candlewickGeo = new THREE.ExtrudeGeometry(candlewickProfile, {
+	const wickGeo = new THREE.ExtrudeGeometry(wickProfile, {
 		steps: 8,
 		bevelEnabled: false,
-		extrudePath: candlewickCurve
+		extrudePath: wickCurve,
 	});
-	var colors = [];
-	var color1 = new THREE.Color("black");
-	var color2 = new THREE.Color(0x994411);
-	var color3 = new THREE.Color(0xffff44);
-	for (let i = 0; i < candlewickGeo.attributes.position.count; i++) {
-		if (candlewickGeo.attributes.position.getY(i) < 0.4) {
+	const colors = [];
+	const color1 = new THREE.Color("black");
+	const color2 = new THREE.Color(0x994411);
+	const color3 = new THREE.Color(0xffff44);
+	for (let i = 0; i < wickGeo.attributes.position.count; i++) {
+		const y = wickGeo.attributes.position.getY(i);
+		if (y < 0.4) {
 			color1.toArray(colors, i * 3);
-		}
-		else {
+		} else {
 			color2.toArray(colors, i * 3);
-		};
-		if (candlewickGeo.attributes.position.getY(i) < 0.15) color3.toArray(colors, i * 3);
+		}
+		if (y < 0.15) color3.toArray(colors, i * 3);
 	}
-	candlewickGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-	candlewickGeo.translate(0, 0.95, 0);
-	var candlewickMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+	wickGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+	wickGeo.translate(0, 0.95, 0);
+	const wickMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+	const wickMesh = new THREE.Mesh(wickGeo, wickMat);
+	caseMesh.add(wickMesh);
 
-	var candlewickMesh = new THREE.Mesh(candlewickGeo, candlewickMat);
-	caseMesh.add(candlewickMesh);
+	// Candle point lights
+	const candleLight1 = new THREE.PointLight(0xffaa33, 1, 5, 2);
+	candleLight1.position.set(0, candleHeight, 0);
+	candleLight1.castShadow = true;
+	caseMesh.add(candleLight1);
+
+	const candleLight2 = new THREE.PointLight(0xffaa33, 1, 10, 2);
+	candleLight2.position.set(0, candleHeight + 1, 0);
+	candleLight2.castShadow = true;
+	caseMesh.add(candleLight2);
+
+	// Add two flame meshes
+	caseMesh.add(flame());
+	caseMesh.add(flame());
 
 	return caseMesh;
 }
 
 const candleMesh = createCandle();
 
-// candle light
-var candleLight = new THREE.PointLight(0xffaa33, 1, 5, 2);
-candleLight.position.set(0, candleHeight, 0);
-candleLight.castShadow = true;
-candleMesh.add(candleLight);
-var candleLight2 = new THREE.PointLight(0xffaa33, 1, 10, 2);
-candleLight2.position.set(0, candleHeight + 1, 0);
-candleLight2.castShadow = true;
-candleMesh.add(candleLight2);
-
-candleMesh.add(flame());
-candleMesh.add(flame())
-
-// table
-var tableGeo = new THREE.CylinderGeometry(14, 14, 0.5, 64);
+// ─────────────────────────────────────────────────────────────────────────────
+// 4) CREATE TABLE (CYLINDER WITH TEXTURE)
+// ─────────────────────────────────────────────────────────────────────────────
+const tableGeo = new THREE.CylinderGeometry(14, 14, 0.5, 64);
 tableGeo.translate(0, -tableHeightOffset, 0);
 const textureLoader = new THREE.TextureLoader();
-const tableTexture = textureLoader.load(tableMatImage); // in the public folder
-console.log(tableTexture);
-var tableMat = new THREE.MeshStandardMaterial({ map: tableTexture, metalness: 0, roughness: 0.75 });
-var tableMesh = new THREE.Mesh(tableGeo, tableMat);
+const tableTexture = textureLoader.load(tableMatImage);
+const tableMat = new THREE.MeshStandardMaterial({
+	map: tableTexture,
+	metalness: 0,
+	roughness: 0.75
+});
+const tableMesh = new THREE.Mesh(tableGeo, tableMat);
 tableMesh.receiveShadow = true;
-
 scene.add(tableMesh);
 
-var clock = new THREE.Clock();
-var time = 0;
+// ─────────────────────────────────────────────────────────────────────────────
+// 5) RENDER LOOP SETUP
+// ─────────────────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+let time = 0;
 
-render();
 function render() {
 	requestAnimationFrame(render);
 	time += clock.getDelta();
-	flameMaterials[0].uniforms.time.value = time;
-	flameMaterials[1].uniforms.time.value = time;
-	candleLight2.position.x = Math.sin(time * Math.PI) * 0.25;
-	candleLight2.position.z = Math.cos(time * Math.PI * 0.75) * 0.25;
-	candleLight2.intensity = 2 + Math.sin(time * Math.PI * 2) * Math.cos(time * Math.PI * 1.5) * 0.25;
+
+	// Update flame shaders
+	if (flameMaterials[0]) flameMaterials[0].uniforms.time.value = time;
+	if (flameMaterials[1]) flameMaterials[1].uniforms.time.value = time;
+
+	// Candle flicker for the second point light
+	const flickerX = Math.sin(time * Math.PI) * 0.25;
+	const flickerZ = Math.cos(time * Math.PI * 0.75) * 0.25;
+	const flickerIntensity = 2 + Math.sin(time * Math.PI * 2) * Math.cos(time * Math.PI * 1.5) * 0.25;
+	candleMesh.children.forEach(child => {
+		if (child instanceof THREE.PointLight && child.distance === 10) {
+			child.position.x = flickerX;
+			child.position.z = flickerZ;
+			child.intensity = flickerIntensity;
+		}
+	});
+
 	controls.update();
 	renderer.render(scene, camera);
 }
+render();
 
-// 蛋糕主體
+// ─────────────────────────────────────────────────────────────────────────────
+// 6) CREATE CAKE & ADD CANDLES
+// ─────────────────────────────────────────────────────────────────────────────
 function createCake() {
 	const cakeGroup = new THREE.Group();
 
-	// 蛋糕底層
-	const baseGeometry = new THREE.CylinderGeometry(baseRadius, baseRadius, baseHeight, 32);
-	const baseMaterial = new THREE.MeshPhongMaterial({ color: 0xfff5ee }); // 更白的顏色
-	const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+	// Base layer
+	const baseGeo = new THREE.CylinderGeometry(baseRadius, baseRadius, baseHeight, 32);
+	const baseMat = new THREE.MeshPhongMaterial({ color: 0xfff5ee });
+	const baseMesh = new THREE.Mesh(baseGeo, baseMat);
 
-	// 蛋糕中層
-	const middleGeometry = new THREE.CylinderGeometry(middleRadius, middleRadius, middleHeight, 32);
-	const middleMaterial = new THREE.MeshPhongMaterial({ color: 0xfffafa }); // 雪白色
-	const middleMesh = new THREE.Mesh(middleGeometry, middleMaterial);
-	middleMesh.position.y = baseHeight / 2 + middleHeight / 2;
+	// Middle layer
+	const midGeo = new THREE.CylinderGeometry(middleRadius, middleRadius, middleHeight, 32);
+	const midMat = new THREE.MeshPhongMaterial({ color: 0xfffafa });
+	const midMesh = new THREE.Mesh(midGeo, midMat);
+	midMesh.position.y = baseHeight / 2 + middleHeight / 2;
 
-	// 蛋糕頂層
-	const topGeometry = new THREE.CylinderGeometry(topRadius, topRadius, topHeight, 32);
-	const topMaterial = new THREE.MeshPhongMaterial({ color: 0xf0ffff }); // 天藍白
-	const topMesh = new THREE.Mesh(topGeometry, topMaterial);
+	// Top layer
+	const topGeo = new THREE.CylinderGeometry(topRadius, topRadius, topHeight, 32);
+	const topMat = new THREE.MeshPhongMaterial({ color: 0xf0ffff });
+	const topMesh = new THREE.Mesh(topGeo, topMat);
 	topMesh.position.y = baseHeight / 2 + middleHeight + topHeight / 2;
 
-	// 將蛋糕的各個部分添加到蛋糕組中
 	cakeGroup.add(baseMesh);
-	cakeGroup.add(middleMesh);
+	cakeGroup.add(midMesh);
 	cakeGroup.add(topMesh);
-
 	return cakeGroup;
 }
 
 const cake = createCake();
 scene.add(cake);
 
-// 修改 caseMesh 的縮放和位置
+// Scale and position the single candle mesh
 candleMesh.scale.set(0.3, 0.3, 0.3);
 candleMesh.castShadow = false;
-candleMesh.position.y = baseHeight / 2 + middleHeight + topHeight; // 調整高度以放置在蛋糕頂部
+candleMesh.position.y = baseHeight / 2 + middleHeight + topHeight;
 
-// 創建多個蠟燭
+// Create multiple candles around the top of the cake
 function createCandles(count) {
-	const candleGroup = new THREE.Group();
-	const radius = 1;
+	const group = new THREE.Group();
+	const radius = 1; // distance from center
 	for (let i = 0; i < count; i++) {
 		const angle = (i / count) * Math.PI * 2;
-		const candle = candleMesh.clone();
-		candle.position.x = Math.cos(angle) * radius;
-		candle.position.z = Math.sin(angle) * radius;
-		candleGroup.add(candle);
+		const clone = candleMesh.clone();
+		clone.position.x = Math.cos(angle) * radius;
+		clone.position.z = Math.sin(angle) * radius;
+		group.add(clone);
 	}
-	return candleGroup;
+	return group;
 }
 
-// 將蠟燭添加到蛋糕上
 const candles = createCandles(candleCount);
 cake.add(candles);
 
-// 調整相機位置
+// Adjust camera to look at the cake
 camera.position.set(0, 5, 10);
 camera.lookAt(cake.position);
 
-// this could be used for light on
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.05);
-scene.add(ambientLight);
+// Add a small ambient light for better cake illumination
+const ambientCakeLight = new THREE.AmbientLight(0xffffff, 0.05);
+scene.add(ambientCakeLight);
 
-// 添加按住事件監聽
+// ─────────────────────────────────────────────────────────────────────────────
+// 7) LOAD FONT AND CREATE “Happy Birthday Kelsei” TEXT (AFTER CAKE EXISTS)
+// ─────────────────────────────────────────────────────────────────────────────
+const fontLoader = new FontLoader();
+fontLoader.load(
+	'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
+	(font) => {
+		const textGeo = new TextGeometry('Happy Birthday Kelsei', {
+			font: font,
+			size: 0.5,    // adjust so the letters aren’t too large
+			height: 0.1,  // extrusion thickness
+			curveSegments: 8
+		});
+		textGeo.computeBoundingBox();
+		textGeo.center();
+
+		const textMat = new THREE.MeshStandardMaterial({ color: 0xffff66 });
+		const textMesh = new THREE.Mesh(textGeo, textMat);
+
+		// Place it just above the top of the cake (4.25 = 2 + 1.25 + 1)
+		textMesh.position.set(0, 6, 0);
+
+		scene.add(textMesh);
+	}
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8) “HOLD TO BLOW OUT” LOGIC & CONGRATULATION OVERLAY
+// ─────────────────────────────────────────────────────────────────────────────
 let holdTimeout;
-let allowBlowout=false;
+let allowBlowout = false;
 
+const holdReminder = document.getElementById('hold-reminder');
+const audio = document.getElementById("happy-birthday-audio");
 
-const holdReminder=document.getElementById('hold-reminder');
-const audio=document.getElementById("happy-birthday-audio");
-
-audio.addEventListener('ended', function() {
+audio.addEventListener('ended', function () {
 	holdReminder.style.display = 'flex';
-	setTimeout(function() {
+	setTimeout(() => {
 		holdReminder.classList.add('show');
-	}, 10); // 確保 display 設置生效後再添加類名
-	allowBlowout=true;
+	}, 10);
+	allowBlowout = true;
 });
 
-// enable the hold event after the song is played
 function handleHoldStart() {
-	if(!allowBlowout){
-		return;
-	}
+	if (!allowBlowout) return;
 	holdTimeout = setTimeout(() => {
 		blowOutCandles();
 	}, 500);
@@ -340,10 +392,10 @@ document.addEventListener('mouseup', handleHoldEnd);
 document.addEventListener('touchend', handleHoldEnd);
 
 function showCongratulation() {
-  const overlay = document.getElementById('congratulation-overlay');
-  overlay.style.pointerEvents = 'auto';
-  overlay.style.background = 'rgba(0, 0, 0, 0.8)';
-  overlay.style.opacity = '1';
+	const overlay = document.getElementById('congratulation-overlay');
+	overlay.style.pointerEvents = 'auto';
+	overlay.style.background = 'rgba(0, 0, 0, 0.8)';
+	overlay.style.opacity = '1';
 }
 
 function blowOutCandles() {
@@ -352,21 +404,19 @@ function blowOutCandles() {
 		extinguishCandle(candle, speed);
 	});
 
-	// 逐漸增加環境光
-	let ambientLightIntensity = ambientLight.intensity;
-	const ambientInterval = setInterval(() => {
-		ambientLightIntensity += 0.01;
-		if (ambientLightIntensity >= 0.1) {
-			clearInterval(ambientInterval);
-			ambientLight.intensity = 0.1;
+	let ambientIntensity = ambientCakeLight.intensity;
+	const interval = setInterval(() => {
+		ambientIntensity += 0.01;
+		if (ambientIntensity >= 0.1) {
+			clearInterval(interval);
+			ambientCakeLight.intensity = 0.1;
 			showCongratulation();
 		} else {
-			ambientLight.intensity = ambientLightIntensity;
+			ambientCakeLight.intensity = ambientIntensity;
 		}
 	}, 50);
 
-	// 隱藏提示文字
-	document.getElementById('hold-reminder').style.display = 'none';
+	holdReminder.style.display = 'none';
 }
 
 function extinguishCandle(candle, speed) {
@@ -374,25 +424,31 @@ function extinguishCandle(candle, speed) {
 	const lights = candle.children.filter(child => child instanceof THREE.PointLight);
 
 	let progress = 0;
-	const extinguishInterval = setInterval(() => {
+	const fadeInterval = setInterval(() => {
 		progress += 0.02 * speed;
 		if (progress >= 1) {
-			clearInterval(extinguishInterval);
-			flames.forEach(flame => flame.visible = false);
-			lights.forEach(light => light.intensity = 0);
+			clearInterval(fadeInterval);
+			flames.forEach(f => f.visible = false);
+			lights.forEach(l => l.intensity = 0);
 		} else {
-			// 降低火焰的不透明度和大小
-			flames.forEach(flame => {
-				flame.material.opacity = 1 - progress;
-				flame.scale.set(1 - progress, 1 - progress, 1 - progress);
+			flames.forEach(f => {
+				f.material.opacity = 1 - progress;
+				f.scale.set(1 - progress, 1 - progress, 1 - progress);
 			});
-
-			// 降低光源強度
-			lights.forEach(light => {
-				light.intensity = 1 - progress;
+			lights.forEach(l => {
+				l.intensity = 1 - progress;
 			});
 		}
 	}, 30);
-
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 9) HANDLE WINDOW RESIZE
+// ─────────────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+	const w = window.innerWidth;
+	const h = window.innerHeight;
+	camera.aspect = w / h;
+	camera.updateProjectionMatrix();
+	renderer.setSize(w, h);
+});
